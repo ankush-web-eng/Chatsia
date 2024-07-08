@@ -10,7 +10,6 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
-let users = 1
 wss.on("connection", (ws) => {
     ws.on("error", error => console.error(error))
 
@@ -22,8 +21,6 @@ wss.on("connection", (ws) => {
             }
         })
     })
-    console.log("Users : " + users++)
-    ws.send("Hello! Message From Server!!")
 })
 
 server.listen(3001, () => {

@@ -1,9 +1,21 @@
 import { useEffect, useState } from "react";
 
+type dataProps = {
+  person: string;
+  text: string;
+}
+
 export default function App() {
 
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<dataProps[]>([]);
+  const [person, setPerson] = useState<string>("Ankush");
+  const [text, setText] = useState<string>("");
+
+  const data = {
+    person,
+    text
+  }
 
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:3001");
@@ -14,19 +26,28 @@ export default function App() {
     }
 
     socket.onmessage = (message) => {
-      console.log("Message from the server: ", message.data);
-      setMessages([...messages, message.data]);
+      const parsedMessage: dataProps = JSON.parse(message.data);
+      setMessages((prev) => [
+        ...prev,
+        parsedMessage
+      ]);
     }
 
     socket.onclose = () => {
       console.log("Disconnected from the server");
     }
 
-    return (() => {
+    return () => {
       socket.close();
-    })
+    }
+  }, []);
 
-  }, [])
+  const handleSend = () => {
+    if (socket) {
+      socket.send(JSON.stringify(data));
+      setText("");
+    }
+  }
 
   if (!socket) {
     return <div>
@@ -36,10 +57,30 @@ export default function App() {
 
   return (
     <div className="h-screen flex justify-center items-center">
-      <h1 className="text-4xl">{messages !== null ? messages.map(() => (
-        <p>{messages}</p>
-      )) : <p>Loading Messags...</p>}</h1>
-      {/* <h1>{messages}</h1> */}
+      <div className="flex flex-col space-y-2">
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            placeholder="name"
+            className="border border-gray-300 p-2"
+            value={person}
+            onChange={(e) => setPerson(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="message"
+            className="border border-gray-300 p-2"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <button onClick={handleSend} className="rounded-md bg-sky-500 border p-2 text-white">Send</button>
+        </div>
+        <div className="text-sm italic flex flex-col">
+          {messages.length > 0 ? messages.map((data: dataProps, index) => (
+            <p key={index}>{data.person} : {data.text}</p>
+          )) : <p>Loading Messages...</p>}
+        </div>
+      </div>
     </div>
   )
 }
