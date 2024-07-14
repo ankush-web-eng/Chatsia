@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react";
 
 type dataProps = {
@@ -5,7 +7,7 @@ type dataProps = {
   text: string;
 }
 
-export default function App() {
+export default function Page() {
 
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<dataProps[]>([]);
@@ -18,7 +20,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    const socket = new WebSocket("wss://ws-app-hzox.onrender.com");
+    const socket = new WebSocket("wss://ws-app-hzox.onrender.com/");
 
     socket.onopen = () => {
       console.log("Connected to the server");
