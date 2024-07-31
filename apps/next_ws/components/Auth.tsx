@@ -1,11 +1,14 @@
 'use client'
 
+import axios from "axios"
 import { signIn, useSession, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Auth() {
 
   const router = useRouter()
+  const { toast } = useToast()
   const { data: session } = useSession()
   const email = session?.user?.email
 
@@ -13,8 +16,21 @@ export default function Auth() {
     if (email) {
       signOut()
     } else {
-      signIn('google').then(()=>{
-        router.push('/')
+      signIn('google').then(async () => {
+        await axios.post(`/api/user/create`, {
+          email: session?.user?.email,
+          name: session?.user?.name,
+          image: session?.user?.image
+        }).then(() => {
+          router.push('/dashboard')
+        }).catch(() => {
+          toast({
+            title: "Failed",
+            description: "Server Error! Please login again.",
+            variant: 'destructive'
+          })
+          signOut()
+        })
       })
     }
   }
