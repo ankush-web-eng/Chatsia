@@ -1,41 +1,37 @@
-"use client"
+'use client'
 
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
-type dataProps = {
-  from: string;
-  to: string;
-  text: string;
-  person: string;
-}
+import { Response } from "@/types/ResponseType";
+import { DataProps } from "@/types/SendingDataType";
+import SingleChatSkeleton from "@/components/skeleton/SingleChatSkeleton";
 
 export default function Page() {
-
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [messages, setMessages] = useState<dataProps[]>([]);
-  const [person, setPerson] = useState<string>("");
+  const [messages, setMessages] = useState<Response[]>([]);
   const [target, setTarget] = useState<string>("");
   const [text, setText] = useState<string>("");
-  const [username, setUsername] = useState<string>("");
+
+  const { data: session } = useSession();
+  const email = session?.user?.email;
+  const person = session?.user?.name;
 
   useEffect(() => {
-    const randomUsername = generateRandomUsername();
-    setUsername(randomUsername);
-
-    const socket = new WebSocket("wss://ws-app-hzox.onrender.com/");
-    // const socket = new WebSocket("ws://localhost:3001");
+    const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
+    // const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL!);
 
     socket.onopen = () => {
       console.log("Connected to the server");
-      socket.send(JSON.stringify({ type: "register", username: randomUsername }));
+      socket.send(JSON.stringify({ type: "register", from: email }));
       setSocket(socket);
     }
 
     socket.onmessage = (message) => {
-      const parsedMessage: dataProps = JSON.parse(message.data);
+      const parsedMessage: Response = JSON.parse(message.data);
       setMessages((prev) => [
         ...prev,
-        parsedMessage
+        ...(parsedMessage instanceof Array ? parsedMessage : [parsedMessage])
       ]);
     }
 
@@ -48,17 +44,13 @@ export default function Page() {
     }
   }, []);
 
-  const generateRandomUsername = () => {
-    return Math.random().toString(36).substring(2, 8);
-  }
-
   const handleSend = () => {
     if (socket) {
-      const data = {
+      const data: DataProps = {
         type: "message",
-        from: username,
+        from: email!,
+        person: person!,
         to: target,
-        person,
         text
       }
       socket.send(JSON.stringify(data));
@@ -67,26 +59,17 @@ export default function Page() {
   }
 
   if (!socket) {
-    return <div>
-      Connecting to the server...
-    </div>
+    return <SingleChatSkeleton />
   }
 
   return (
     <div className="h-screen flex justify-center items-center">
       <div className="flex flex-col space-y-2">
         <p>
-          Your username is <span className="text-sky-600">{username}</span>
+          Hi, <span className="text-sky-600">{person}</span>
         </p>
         <p>Send it to your friend to chat with him/her</p>
         <div className="flex flex-col space-y-2">
-          <input
-            type="text"
-            placeholder="your name"
-            className="border border-gray-300 p-2 rounded-lg"
-            value={person}
-            onChange={(e) => setPerson(e.target.value)}
-          />
           <input
             type="text"
             placeholder="message"
@@ -96,7 +79,7 @@ export default function Page() {
           />
           <input
             type="text"
-            placeholder="target username"
+            placeholder="target email"
             className="border border-gray-300 p-2 rounded-lg"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
@@ -104,9 +87,9 @@ export default function Page() {
           <button onClick={handleSend} className="rounded-md bg-sky-500 border p-2 text-white">Send</button>
         </div>
         <div className="text-sm italic flex flex-col">
-          {messages.length > 0 ? messages.map((data: dataProps, index) => (
-            <p key={index}>{data.person} : {data.text}</p>
-          )) : <p>Loading Messages...</p>}
+          {messages.length > 0 ? messages.map((data: Response, index: React.Key) => (
+            <p key={index}><strong>{data.person}</strong>: {data.text}</p>
+          )) : <p>No new messages...</p>}
         </div>
       </div>
     </div>
