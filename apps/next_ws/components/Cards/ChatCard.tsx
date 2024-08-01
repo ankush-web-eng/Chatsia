@@ -1,10 +1,10 @@
 'use client'
 import Image from 'next/image';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, KeyboardEvent } from 'react';
 
 import { User as UserModel } from '@prisma/client';
 
-import { FaVideo, FaPhone, FaSearch } from 'react-icons/fa';
+import { FaVideo, FaPhone } from 'react-icons/fa';
 import { IoIosSend } from 'react-icons/io';
 import { useSession } from 'next-auth/react';
 import { DataProps } from '@/types/SendingDataType';
@@ -49,7 +49,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
     }, [text]);
 
     const handleSendMessage = () => {
-        if (socket) {
+        if (socket && isTyped) {
             const data: DataProps = {
                 type: "message",
                 from: session?.user?.email!,
@@ -62,6 +62,12 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
         }
     }
 
+    const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSendMessage();
+        }
+    }
 
     return (
         <div className="flex flex-col max-h-screen w-full">
@@ -81,36 +87,46 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
                 <div className="flex space-x-4">
                     <FaVideo className="text-[#aebac1] text-xl" />
                     <FaPhone className="text-[#aebac1] text-xl" />
-                    <FaSearch className="text-[#aebac1] text-xl" />
                 </div>
             </div>
 
             {/* Chat Messages Area */}
             <div className="flex-grow overflow-y-auto p-4 space-y-2">
                 {socket && messages.length > 0 ? messages.map((data: Response, index: React.Key) => (
-                    <p key={index}><strong>{data.person}</strong>: {data.text}</p>
+                    <div
+                        key={index}
+                        className={`flex ${data.from === session?.user?.email ? 'justify-end' : 'justify-start'}`}
+                    >
+                        <div
+                            className={`max-w-[70%] p-2 rounded-lg ${data.from === session?.user?.email
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-gray-200 text-black'
+                                }`}
+                        >
+                            <p><strong>{data.person}</strong>: {data.text}</p>
+                        </div>
+                    </div>
                 )) : <p>No new messages...</p>}
             </div>
 
             {/* Chat Input Area */}
-            <form
-                onSubmit={handleSendMessage}
-                className="p-3 flex items-center border-t">
+            <div className="p-3 flex items-center border-t">
                 <input
                     type="text"
                     placeholder="Type a message"
                     value={text}
                     onChange={(e) => setText(e.target.value)}
+                    onKeyDown={handleKeyPress}
                     className="flex-grow border p-2 rounded-lg text-black"
                 />
                 <button
-                    type='submit'
+                    onClick={handleSendMessage}
                     disabled={!isTyped}
                     className={`text-xl ml-2 ${isTyped ? 'text-blue-500' : 'text-gray-500 cursor-not-allowed'}`}
                 >
                     <IoIosSend />
                 </button>
-            </form>
+            </div>
         </div>
     );
 };
