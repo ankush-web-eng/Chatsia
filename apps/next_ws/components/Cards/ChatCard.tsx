@@ -8,6 +8,7 @@ import { FaVideo, FaPhone, FaSearch } from 'react-icons/fa';
 import { IoIosSend } from 'react-icons/io';
 import { useSession } from 'next-auth/react';
 import { DataProps } from '@/types/SendingDataType';
+import { Response } from '@/types/ResponseType';
 
 const ChatInterface = ({ user }: { user: UserModel }) => {
 
@@ -86,11 +87,15 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
 
             {/* Chat Messages Area */}
             <div className="flex-grow overflow-y-auto p-4 space-y-2">
-                {/* Add chat messages here */}
+                {socket && messages.length > 0 ? messages.map((data: Response, index: React.Key) => (
+                    <p key={index}><strong>{data.person}</strong>: {data.text}</p>
+                )) : <p>No new messages...</p>}
             </div>
 
             {/* Chat Input Area */}
-            <div className="p-3 flex items-center border-t">
+            <form
+                onSubmit={handleSendMessage}
+                className="p-3 flex items-center border-t">
                 <input
                     type="text"
                     placeholder="Type a message"
@@ -99,13 +104,13 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
                     className="flex-grow border p-2 rounded-lg text-black"
                 />
                 <button
-                    onClick={handleSendMessage}
+                    type='submit'
                     disabled={!isTyped}
                     className={`text-xl ml-2 ${isTyped ? 'text-blue-500' : 'text-gray-500 cursor-not-allowed'}`}
                 >
                     <IoIosSend />
                 </button>
-            </div>
+            </form>
         </div>
     );
 };

@@ -5,9 +5,12 @@ import { signOut, useSession } from "next-auth/react";
 
 import { LuLoader } from "react-icons/lu";
 import { useToast } from "@/components/ui/use-toast";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Page() {
+
+    const [socket, setSocket] = useState<WebSocket | null>(null);
+
 
     const { data: session } = useSession()
     const router = useRouter()
@@ -31,6 +34,24 @@ export default function Page() {
             router.replace('/chats')
         }
     }
+
+    useEffect(() => {
+        const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
+
+        socket.onopen = () => {
+            console.log("Connected to the server");
+            socket.send(JSON.stringify({ type: "register", from: session?.user?.email }));
+            setSocket(socket);
+        }
+
+        socket.onclose = () => {
+            console.log("Disconnected from the server");
+        }
+
+        return () => {
+            socket.close();
+        }
+    }, []);
 
     useEffect(() => {
         createUser()
