@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <div className="flex w-screen h-screen">
-      <UsersColumn />
-      <div className="max-md:hidden"><EmptyChatCard /></div>
+      <div className="max-md:w-full"><UsersColumn /></div>
+      <div className="max-md:hidden w-full h-full flex justify-center items-center"><EmptyChatCard /></div>
     </div>
   )
 }
