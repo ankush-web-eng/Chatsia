@@ -1,15 +1,19 @@
 'use client'
 
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { User as UserModel } from "@prisma/client";
-
+import axios from "axios";
 import { useToast } from "@/components/ui/use-toast";
 import UserCard from "@/components/Cards/UserCard";
+import { signOut, useSession } from "next-auth/react";
+import { Button } from "./ui/button";
+import { useRouter } from "next/navigation";
 
-export default function UsersColumn() {
+export default function UsersColumn({ selectedUser }: { selectedUser?: string }) {
     const [users, setUsers] = useState([]);
     const { toast } = useToast();
+    const { data: session } = useSession()
+    const router = useRouter()
 
     const getUsers = async () => {
         try {
@@ -30,11 +34,29 @@ export default function UsersColumn() {
     }, [])
 
     return (
-        <div className="flex flex-col justify-center items-center min-h-screen bg-white">
-            <h1 className="text-3xl font-bold mb-6 text-black">Users</h1>
-            <div className="w-full max-w-md bg-gray-100 rounded-lg shadow-lg p-6">
-                {users.map((user: UserModel, index: React.Key) => (
-                    <UserCard key={index} user={user} />
+        <div className="flex flex-col w-[30%] min-w-[300px] border-r border-gray bg-white ">
+            <div className="p-4 space-y-2 flex flex-col justify-center">
+                <input
+                    type="text"
+                    placeholder="Search or start new chat"
+                    disabled
+                    className="w-full p-2 border rounded-lg text-white"
+                />
+                <Button onClick={() => {
+                    signOut().then(() => {
+                        toast({
+                            title: "Logged Out",
+                            description: "You have been logged out",
+                        });
+                        router.replace('/signin')
+                    })
+                }}>Logout</Button>
+            </div>
+            <div className="overflow-y-auto flex-grow">
+                {users
+                .filter((user: UserModel) => user.email !== session?.user?.email)
+                .map((user: UserModel, index: React.Key) => (
+                    <UserCard key={index} user={user} selectedUser={selectedUser} />
                 ))}
             </div>
         </div>

@@ -18,7 +18,6 @@ export async function POST(req: NextRequest) {
         if (isUser) {
             return NextResponse.json({ success: true, message: "User already exists!" }, { status: 200 })
         }
-
         await prisma.user.create({
             data: {
                 email,
@@ -33,6 +32,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, message: "User created successfully!" }, { status: 200 })
 
     } catch (error) {
+        console.error(error)
         return NextResponse.json({ success: true, message: "Server Error! Please login again." }, { status: 500 })
     }
 }

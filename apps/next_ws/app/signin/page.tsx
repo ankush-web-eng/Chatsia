@@ -2,7 +2,7 @@ import Auth from "@/components/Auth";
 import { Metadata } from "next";
 
 export const metadata : Metadata = {
-  title: "Sign In",
+  title: "SignIn",
   description: "Sign in to your account",
   keywords: "Sign in, Login, Account"
 }
