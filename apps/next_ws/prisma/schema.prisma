@@ -17,7 +17,8 @@ model User {
 model Messages {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   text      String
-  createdAt DateTime @default(now())
   reciever  String
   sender    String
+  person    String
+  createdAt DateTime @default(now())
 }

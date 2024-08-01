@@ -1,22 +1,29 @@
 'use client'
+import axios from 'axios';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import React, { useState, useEffect, KeyboardEvent } from 'react';
 
 import { User as UserModel } from '@prisma/client';
+import { Messages as Texts } from '@prisma/client';
 
-import { FaVideo, FaPhone } from 'react-icons/fa';
-import { IoIosSend } from 'react-icons/io';
-import { useSession } from 'next-auth/react';
-import { DataProps } from '@/types/SendingDataType';
 import { Response } from '@/types/ResponseType';
+import { DataProps } from '@/types/SendingDataType';
+import { useToast } from '@/components/ui/use-toast';
+
+import { IoIosSend } from 'react-icons/io';
+import { FaVideo, FaPhone } from 'react-icons/fa';
+
+type CombinedMessage = Texts | Response;
 
 const ChatInterface = ({ user }: { user: UserModel }) => {
 
     const [socket, setSocket] = useState<WebSocket | null>(null);
     const [text, setText] = useState<string>("");
     const [isTyped, setIsTyped] = useState<boolean>(false);
-    const [messages, setMessages] = useState<Response[]>([]);
+    const [allMessages, setAllMessages] = useState<CombinedMessage[]>([]);
     const { data: session } = useSession();
+    const { toast } = useToast();
 
     useEffect(() => {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
@@ -29,10 +36,10 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
 
         socket.onmessage = (message) => {
             const parsedMessage: Response = JSON.parse(message.data);
-            setMessages((prev) => [
+            setAllMessages((prev) => [
                 ...prev,
                 ...(parsedMessage instanceof Array ? parsedMessage : [parsedMessage])
-            ]);
+            ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
         }
 
         socket.onclose = () => {
@@ -48,6 +55,23 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
         setIsTyped(text.trim().length > 0);
     }, [text]);
 
+    const handleSaveMessage = async () => {
+        try {
+            const res = await axios.post('/api/text/create', {
+                text, reciever: user.email, sender: session?.user?.email, person: session?.user?.name
+            })
+            setAllMessages(prev => [...prev, res.data.message].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+        } catch (error) {
+            console.error(error);
+            toast({
+                title: "Error",
+                description: "Failed to save message",
+                variant: "destructive",
+                duration: 2500,
+            })
+        }
+    }
+
     const handleSendMessage = () => {
         if (socket && isTyped) {
             const data: DataProps = {
@@ -59,6 +83,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
             }
             socket.send(JSON.stringify(data));
             setText("");
+            handleSaveMessage()
         }
     }
 
@@ -68,6 +93,28 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
             handleSendMessage();
         }
     }
+
+    const getMessages = async () => {
+        try {
+            const response = await axios.post('/api/text/get', {
+                sender: session?.user?.email,
+                reciever: user.email
+            });
+            setAllMessages(response.data.messages.sort((a : any, b : any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+        } catch (error) {
+            console.error(error)
+            toast({
+                title: "Error",
+                description: "Failed to get messages",
+                variant: "destructive",
+                duration: 2500,
+            })
+        }
+    }
+
+    useEffect(() => {
+        getMessages()
+    }, [])
 
     return (
         <div className="flex flex-col max-h-screen w-full">
@@ -90,26 +137,24 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
                 </div>
             </div>
 
-            {/* Chat Messages Area */}
             <div className="flex-grow overflow-y-auto p-4 space-y-2">
-                {socket && messages.length > 0 ? messages.map((data: Response, index: React.Key) => (
+                {allMessages.length > 0 ? allMessages.map((data: CombinedMessage, index: React.Key) => (
                     <div
                         key={index}
-                        className={`flex ${data.from === session?.user?.email ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${data.person === session?.user?.name ? 'justify-end' : 'justify-start'}`}
                     >
                         <div
-                            className={`max-w-[70%] p-2 rounded-lg ${data.from === session?.user?.email
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-gray-200 text-black'
+                            className={`max-w-[70%] p-2 rounded-lg ${data.person === session?.user?.name
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-200 text-black'
                                 }`}
                         >
                             <p><strong>{data.person}</strong>: {data.text}</p>
                         </div>
                     </div>
-                )) : <p>No new messages...</p>}
+                )) : <p>No messages...</p>}
             </div>
 
-            {/* Chat Input Area */}
             <div className="p-3 flex items-center border-t">
                 <input
                     type="text"
