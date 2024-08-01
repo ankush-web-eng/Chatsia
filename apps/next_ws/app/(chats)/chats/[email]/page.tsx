@@ -36,7 +36,7 @@ export default function Page() {
 
   return (
     <div className="flex w-screen h-screen p-3">
-      <UsersColumn selectedUser={decodedEmail} />
+      <div className="max-md:hidden"><UsersColumn selectedUser={decodedEmail} /></div>
       {user === null ? <EmptyChatCard /> : <ChatInterface user={user} />}
     </div>
   )
