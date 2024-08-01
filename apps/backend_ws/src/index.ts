@@ -25,7 +25,7 @@ wss.on("connection", (ws) => {
         console.log(`User registered: ${from}`);
       } else if (type === "message" && to) {
         const targetClient = clients.get(to);
-        if (targetClient && targetClient.readyState === WebSocket.OPEN) {
+        if (targetClient) {
           const fullMessage = { person, text, from };
           targetClient.send(JSON.stringify(fullMessage), { binary: isBinary });
           ws.send(JSON.stringify(fullMessage), { binary: isBinary });

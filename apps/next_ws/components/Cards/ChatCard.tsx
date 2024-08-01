@@ -24,10 +24,9 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
     const { toast } = useToast();
 
     useEffect(() => {
-        const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
+        const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL!);
 
         socket.onopen = () => {
-            console.log("Connected to the server");
             socket.send(JSON.stringify({ type: "register", from: session?.user?.email }));
             setSocket(socket);
         }
@@ -52,10 +51,10 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
 
     const handleSaveMessage = async () => {
         try {
-            const res = await axios.post('/api/text/create', {
+            await axios.post('/api/text/create', {
                 text, reciever: user.email, sender: session?.user?.email, person: session?.user?.name
             });
-            setDbMessages((prev) => [...prev, res.data.message]);
+            getMessages()
         } catch (error) {
             console.error(error);
             toast({
@@ -95,11 +94,8 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
                 sender: session?.user?.email,
                 receiver: user.email
             });
-            const receivedMessages = await axios.post('/api/text/get', {
-                sender: user.email,
-                receiver: session?.user?.email
-            });
-            setDbMessages([...response.data.messages, ...receivedMessages.data.messages].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+            setDbMessages(response.data.messages);
+            console.log(dbMessages)
         } catch (error) {
             console.error(error)
             toast({
@@ -111,7 +107,6 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
         }
     }
 
-
     useEffect(() => {
         getMessages();
     }, []);
@@ -120,15 +115,18 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
         <div className="flex flex-col max-h-screen w-full">
             <div className="flex items-center rounded-xl justify-between p-3 border">
                 <div className="flex items-center">
-                    <Image
-                        className="w-10 h-10 bg-yellow-500 rounded-full mr-3"
-                        src={user.image!}
-                        alt={user.name}
-                        width={40}
-                        height={40}
-                        fetchPriority='high'
-                        loading='lazy'
-                    />
+                    <div className='relative'>
+                        <Image
+                            className="w-10 h-10 bg-yellow-500 rounded-full mr-3"
+                            src={user.image!}
+                            alt={user.name}
+                            width={40}
+                            height={40}
+                            fetchPriority='high'
+                            loading='lazy'
+                        />
+                        {socket && <div className='absolute bottom-0 right-4 w-2 h-2 rounded-full bg-green-500'></div>}
+                    </div>
                     <span className="font-semibold">{user.name}</span>
                 </div>
                 <div className="flex space-x-4">
