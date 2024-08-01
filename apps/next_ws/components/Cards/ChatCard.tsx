@@ -24,7 +24,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
     const { toast } = useToast();
 
     useEffect(() => {
-        const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL!);
+        const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
 
         socket.onopen = () => {
             socket.send(JSON.stringify({ type: "register", from: session?.user?.email }));
