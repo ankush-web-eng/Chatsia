@@ -20,6 +20,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
     const [isTyped, setIsTyped] = useState<boolean>(false);
     const [dbMessages, setDbMessages] = useState<Texts[]>([]);
     const [socketMessages, setSocketMessages] = useState<Response[]>([]);
+    const [receiverStatus, setReceiverStatus] = useState<string>("offline");
     const { data: session } = useSession();
     const { toast } = useToast();
 
@@ -27,13 +28,21 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
 
         socket.onopen = () => {
-            socket.send(JSON.stringify({ type: "register", from: session?.user?.email }));
+            socket.send(JSON.stringify({ type: "register", from: session?.user?.email, to: user.email }));
             setSocket(socket);
         }
 
         socket.onmessage = (message) => {
-            const parsedMessage: Response = JSON.parse(message.data);
-            setSocketMessages((prev) => [...prev, parsedMessage]);
+            const parsedMessage = JSON.parse(message.data);
+
+            if (parsedMessage.type === 'receiverStatus') {
+                setReceiverStatus(parsedMessage.status);
+            } else {
+                setSocketMessages((prev) => [
+                    ...prev,
+                    ...(parsedMessage instanceof Array ? parsedMessage : [parsedMessage])
+                ]);
+            }
         }
 
         socket.onclose = () => {
@@ -43,7 +52,8 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
         return () => {
             socket.close();
         }
-    }, []);
+    }, [session?.user?.email, user.email]);
+
 
     useEffect(() => {
         setIsTyped(text.trim().length > 0);
@@ -54,7 +64,6 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
             await axios.post('/api/text/create', {
                 text, reciever: user.email, sender: session?.user?.email, person: session?.user?.name
             });
-            getMessages()
         } catch (error) {
             console.error(error);
             toast({
@@ -125,7 +134,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
                             fetchPriority='high'
                             loading='lazy'
                         />
-                        {socket && <div className='absolute bottom-0 right-4 w-2 h-2 rounded-full bg-green-500'></div>}
+                        <div className={`absolute bottom-0 right-4 w-2 h-2 rounded-full ${receiverStatus === "online" ? 'bg-green-500' : 'bg-red-500'}`}></div>
                     </div>
                     <span className="font-semibold">{user.name}</span>
                 </div>
