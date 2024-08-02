@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
     try {
         const reqBody = await req.json();
         const { sender, receiver } = reqBody;
-        console.log(sender, receiver);
 
         const messages = await prisma.messages.findMany({
             where: {

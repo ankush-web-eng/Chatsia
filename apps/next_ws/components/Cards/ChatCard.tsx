@@ -1,6 +1,5 @@
 'use client'
 import axios from 'axios';
-import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import React, { useState, useEffect, KeyboardEvent } from 'react';
 
@@ -10,9 +9,9 @@ import { Messages as Texts } from '@prisma/client';
 import { Response } from '@/types/ResponseType';
 import { DataProps } from '@/types/SendingDataType';
 import { useToast } from '@/components/ui/use-toast';
+import ChatHeader from '@/components/includes/ChatHeader';
 
 import { IoIosSend } from 'react-icons/io';
-import { FaVideo, FaPhone } from 'react-icons/fa';
 
 const ChatInterface = ({ user }: { user: UserModel }) => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -122,27 +121,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
 
     return (
         <div className="flex flex-col max-h-screen w-full">
-            <div className="flex items-center rounded-xl justify-between p-3 border">
-                <div className="flex items-center">
-                    <div className='relative'>
-                        <Image
-                            className="w-10 h-10 bg-yellow-500 rounded-full mr-3"
-                            src={user.image!}
-                            alt={user.name}
-                            width={40}
-                            height={40}
-                            fetchPriority='high'
-                            loading='lazy'
-                        />
-                        <div className={`absolute bottom-0 right-4 w-2 h-2 rounded-full ${receiverStatus === "online" ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    </div>
-                    <span className="font-semibold">{user.name}</span>
-                </div>
-                <div className="flex space-x-4">
-                    <FaVideo className="text-[#aebac1] text-xl" />
-                    <FaPhone className="text-[#aebac1] text-xl" />
-                </div>
-            </div>
+            <ChatHeader user={user} receiverStatus={receiverStatus} />
 
             <div className="flex-grow overflow-y-auto p-4 space-y-2">
                 {dbMessages.length > 0 && dbMessages.map((data: Texts, index: React.Key) => (
