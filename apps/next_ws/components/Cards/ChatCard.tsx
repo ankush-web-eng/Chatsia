@@ -37,6 +37,12 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
 
             if (parsedMessage.type === 'receiverStatus') {
                 setReceiverStatus(parsedMessage.status);
+            } else if (parsedMessage.type === 'updateStatus') {
+                if (parsedMessage.users.includes(user.email)) {
+                    setReceiverStatus('online');
+                } else {
+                    setReceiverStatus('offline');
+                }
             } else {
                 setSocketMessages((prev) => [
                     ...prev,
@@ -49,11 +55,15 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
             console.log("Disconnected from the server");
         }
 
+        const pingInterval = setInterval(() => {
+            socket.send(JSON.stringify({ type: 'ping', from: session?.user?.email }));
+        }, 5000);
+
         return () => {
+            clearInterval(pingInterval);
             socket.close();
         }
     }, [session?.user?.email, user.email]);
-
 
     useEffect(() => {
         setIsTyped(text.trim().length > 0);
@@ -123,7 +133,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
     return (
         <div className="flex flex-col max-h-screen w-full">
             <ChatHeader user={user} receiverStatus={receiverStatus} />
-            <Receiver />
+            <Receiver username={user.name} />
             <div className="flex-grow overflow-y-auto p-4 space-y-2">
                 {dbMessages.length > 0 && dbMessages.map((data: Texts, index: React.Key) => (
                     <div
@@ -157,7 +167,6 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
                 ))}
                 {dbMessages.length === 0 && socketMessages.length === 0 && <p>No messages...</p>}
             </div>
-
 
             <div className="p-3 flex items-center border-t">
                 <input

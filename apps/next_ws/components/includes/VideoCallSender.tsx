@@ -1,18 +1,18 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react";
 import { FaVideo } from "react-icons/fa";
 import { useToast } from "@/components/ui/use-toast";
-
 import {
     Dialog,
     DialogContent,
     DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 
 export const VideoCallSender = () => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const videoRef = useRef<HTMLVideoElement>(null);
-    const { toast } = useToast()
+    const { toast } = useToast();
+    const pcRef = useRef<RTCPeerConnection | null>(null);
 
     useEffect(() => {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
@@ -21,7 +21,11 @@ export const VideoCallSender = () => {
             socket.send(JSON.stringify({
                 type: 'sender'
             }));
-        }
+        };
+
+        return () => {
+            socket.close();
+        };
     }, []);
 
     useEffect(() => {
@@ -36,69 +40,84 @@ export const VideoCallSender = () => {
     }, [isOpen]);
 
     const initiateConn = async () => {
-
         if (!socket) {
             toast({
                 title: 'Error',
                 description: "Connection not found",
                 variant: 'destructive',
                 duration: 3000
-            })
+            });
             return;
         }
+
+        const pc = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        });
+        pcRef.current = pc;
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate) {
+                socket.send(JSON.stringify({
+                    type: 'iceCandidate',
+                    candidate: event.candidate
+                }));
+            }
+        };
+
+        pc.onnegotiationneeded = async () => {
+            try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                socket.send(JSON.stringify({
+                    type: 'createOffer',
+                    sdp: pc.localDescription
+                }));
+            } catch (error) {
+                console.error("Error during negotiation:", error);
+            }
+        };
 
         socket.onmessage = async (event) => {
             const message = JSON.parse(event.data);
             if (message.type === 'createAnswer') {
                 await pc.setRemoteDescription(message.sdp);
             } else if (message.type === 'iceCandidate') {
-                pc.addIceCandidate(message.candidate);
+                await pc.addIceCandidate(message.candidate);
             }
-        }
+        };
 
-        const pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        });
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket?.send(JSON.stringify({
-                    type: 'iceCandidate',
-                    candidate: event.candidate
-                }));
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.play();
             }
-        }
-
-        pc.onnegotiationneeded = async () => {
-            console.error("onnegotiateion needed");
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            socket?.send(JSON.stringify({
-                type: 'createOffer',
-                sdp: pc.localDescription
-            }));
-        }
-
-        getCameraStreamAndSend(pc);
-        setIsOpen(true);
-    }
-
-    const getCameraStreamAndSend = (pc: RTCPeerConnection) => {
-        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
-            if (!videoRef.current) {
-                return;
-            }
-            const video = videoRef.current;
-            video.srcObject = stream;
-            video.play();
-            document.body.appendChild(video);
             stream.getTracks().forEach((track) => {
-                console.error("track added");
-                console.log(track);
-                console.log(pc);
-                pc?.addTrack(track);
+                pc.addTrack(track, stream);
             });
-        });
-    }
+            setIsOpen(true);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: "Failed to access media devices",
+                variant: 'destructive',
+                duration: 3000
+            });
+            console.error("Error accessing media devices:", error);
+        }
+    };
+
+    useEffect(() => {
+        return () => {
+            if (pcRef.current) {
+                pcRef.current.close();
+            }
+            if (videoRef.current && videoRef.current.srcObject) {
+                const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+                tracks.forEach((track) => track.stop());
+            }
+        };
+    }, []);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -117,5 +136,5 @@ export const VideoCallSender = () => {
                 </div>
             </DialogContent>
         </Dialog>
-    )
-}
+    );
+};
