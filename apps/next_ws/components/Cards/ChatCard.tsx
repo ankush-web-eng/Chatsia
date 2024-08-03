@@ -10,6 +10,7 @@ import { Response } from '@/types/ResponseType';
 import { DataProps } from '@/types/SendingDataType';
 import { useToast } from '@/components/ui/use-toast';
 import ChatHeader from '@/components/includes/ChatHeader';
+import Receiver from '@/components/includes/ReceiveCall';
 
 import { IoIosSend } from 'react-icons/io';
 
@@ -122,7 +123,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
     return (
         <div className="flex flex-col max-h-screen w-full">
             <ChatHeader user={user} receiverStatus={receiverStatus} />
-
+            <Receiver />
             <div className="flex-grow overflow-y-auto p-4 space-y-2">
                 {dbMessages.length > 0 && dbMessages.map((data: Texts, index: React.Key) => (
                     <div

@@ -36,7 +36,7 @@ export default class ChatHeader extends React.Component<Props> {
                 </div>
                 <div className="flex space-x-4">
                     <VideoCallSender />
-                    <FaPhone className="text-[#36dada] text-xl" />
+                    {/* <FaPhone className="text-[#36dada] text-xl" /> */}
                 </div>
             </div>
         );

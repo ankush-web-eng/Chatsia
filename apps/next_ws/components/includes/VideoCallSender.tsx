@@ -8,13 +8,11 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 
-
 export const VideoCallSender = () => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
-    const [pc, setPC] = useState<RTCPeerConnection | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
-    const { toast } = useToast()
     const videoRef = useRef<HTMLVideoElement>(null);
+    const { toast } = useToast()
 
     useEffect(() => {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
@@ -58,8 +56,9 @@ export const VideoCallSender = () => {
             }
         }
 
-        const pc = new RTCPeerConnection();
-        setPC(pc);
+        const pc = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        });
         pc.onicecandidate = (event) => {
             if (event.candidate) {
                 socket?.send(JSON.stringify({
@@ -70,6 +69,7 @@ export const VideoCallSender = () => {
         }
 
         pc.onnegotiationneeded = async () => {
+            console.error("onnegotiateion needed");
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             socket?.send(JSON.stringify({
@@ -83,29 +83,21 @@ export const VideoCallSender = () => {
     }
 
     const getCameraStreamAndSend = (pc: RTCPeerConnection) => {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-            if (!videoRef.current) return;
+        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+            if (!videoRef.current) {
+                return;
+            }
             const video = videoRef.current;
             video.srcObject = stream;
-            video.play().catch(e => {
-                toast({ title: 'Error', description: e.message });
-                return;
-            });
+            video.play();
             document.body.appendChild(video);
             stream.getTracks().forEach((track) => {
+                console.error("track added");
+                console.log(track);
+                console.log(pc);
                 pc?.addTrack(track);
             });
-            toast({
-                title: 'Success',
-                description: "Waiting for receiver to accept call"
-            })
-        }).catch(error => {
-            console.error('Error accessing audio:', error);
-            toast({
-                title: 'Error',
-                description: "Could not access camera and microphone"
-            });
-        })
+        });
     }
 
     return (
