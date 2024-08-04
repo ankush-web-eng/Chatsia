@@ -104,6 +104,37 @@ wss.on('connection', (ws) => {
         }
       }
 
+
+      else if (type === 'videoSender') {
+        console.log("sender added");
+        senderSocket = ws;
+      } else if (type === 'videoReceiver') {
+        console.log("receiver added");
+        receiverSocket = ws;
+      } else if (type === 'videoCreateOffer') {
+        if (ws !== senderSocket) {
+          return;
+        }
+        console.log("sending offer");
+        receiverSocket?.send(JSON.stringify({ type: 'videoCreateOffer', sdp: sdp }));
+      } else if (type === 'videoCreateAnswer') {
+        if (ws !== receiverSocket) {
+          return;
+        }
+        console.log("sending answer");
+        senderSocket?.send(JSON.stringify({ type: 'videoCreateAnswer', sdp: sdp }));
+      } else if (type === 'iceCandidate') {
+        console.log("sending ice candidate")
+        if (ws === senderSocket) {
+          console.log("sender ice candidate");
+          receiverSocket?.send(JSON.stringify({ type: 'videoIceCandidate', candidate: candidate }));
+        } else if (ws === receiverSocket) {
+          console.log("receiver ice candidate");
+          senderSocket?.send(JSON.stringify({ type: 'videoIceCandidate', candidate: candidate }));
+        }
+      }
+
+
     } catch (error) {
       console.error(`Error parsing message: ${message}`, error);
     }
