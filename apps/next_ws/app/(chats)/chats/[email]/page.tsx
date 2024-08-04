@@ -3,11 +3,13 @@
 import axios from "axios";
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 
-import ChatInterface from "@/components/Cards/ChatCard";
 import { useToast } from "@/components/ui/use-toast";
-import UsersColumn from "@/components/UsersColumn";
-import EmptyChatCard from "@/components/Cards/EmptyChatCard";
+import ChatInterfaceSkeleton from "@/components/skeleton/ChatInterfaceSkeleton";
+const ChatInterface = dynamic(() => import("@/components/Cards/ChatCard"), { ssr: false, loading: () => <ChatInterfaceSkeleton /> });
+const UsersColumn = dynamic(() => import("@/components/UsersColumn"), { ssr: false });
+const EmptyChatCard = dynamic(() => import("@/components/Cards/EmptyChatCard"), { ssr: false });
 
 export default function Page() {
 

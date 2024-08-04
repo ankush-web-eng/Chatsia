@@ -1,16 +1,17 @@
 'use client'
 import axios from "axios";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 
-import { LuLoader } from "react-icons/lu";
 import { useToast } from "@/components/ui/use-toast";
 import { useEffect, useState } from "react";
+
+const HomePageSkeleton = dynamic(() => import("@/components/skeleton/HomePageSkeleton"));
 
 export default function Page() {
 
     const [socket, setSocket] = useState<WebSocket | null>(null);
-
 
     const { data: session } = useSession()
     const router = useRouter()
@@ -44,10 +45,6 @@ export default function Page() {
             setSocket(socket);
         }
 
-        socket.onclose = () => {
-            console.log("Disconnected from the server");
-        }
-
         return () => {
             socket.close();
         }
@@ -57,7 +54,5 @@ export default function Page() {
         createUser()
     }, [])
 
-    return (
-        <div className="flex min-h-screen justify-center items-center"><LuLoader className="animate-spin" /></div>
-    )
+    return <HomePageSkeleton />
 }

@@ -1,5 +1,6 @@
-import EmptyChatCard from "@/components/Cards/EmptyChatCard";
-import UsersColumn from "@/components/UsersColumn";
+import dynamic from "next/dynamic";
+const EmptyChatCard = dynamic(() => import("@/components/Cards/EmptyChatCard"), { ssr: false });
+const UsersColumn = dynamic(() => import("@/components/UsersColumn"), {ssr: false});
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

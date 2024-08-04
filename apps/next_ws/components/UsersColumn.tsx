@@ -1,13 +1,14 @@
 'use client'
 
-import React, { useEffect, useState } from "react";
-import { User as UserModel } from "@prisma/client";
 import axios from "axios";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+
+import { User as UserModel } from "@prisma/client";
 import { useToast } from "@/components/ui/use-toast";
 import UserCard from "@/components/Cards/UserCard";
-import { signOut, useSession } from "next-auth/react";
-import { Button } from "./ui/button";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export default function UsersColumn({ selectedUser }: { selectedUser?: string }) {
     const [users, setUsers] = useState([]);
