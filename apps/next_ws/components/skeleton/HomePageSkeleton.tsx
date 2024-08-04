@@ -16,7 +16,7 @@ export default function HomePageSkeleton() {
                 </div>
                 <Skeleton className="h-10 w-full mt-auto" />
             </div>
-            <div className="flex-1 flex flex-col justify-center items-center">
+            <div className="flex-1 flex flex-col justify-center items-center md:hidden">
                 <Skeleton className="h-16 w-16 rounded-full mb-4" />
                 <Skeleton className="h-8 w-48" />
             </div>

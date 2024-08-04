@@ -10,6 +10,7 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 const clients = new Map<string, { socket: WebSocket, lastPing: number }>();
+const activeCalls = new Map<string, string>();
 
 const PING_INTERVAL = 10000;
 const DISCONNECT_TIMEOUT = 30000;
@@ -30,7 +31,6 @@ wss.on('connection', (ws) => {
 
       if (type === 'register') {
         clients.set(from, { socket: ws, lastPing: Date.now() });
-        console.log(`User registered: ${from}`);
 
         broadcastStatus();
 
@@ -49,37 +49,58 @@ wss.on('connection', (ws) => {
           const fullMessage = { person, text, from };
           targetClient.socket.send(JSON.stringify(fullMessage), { binary: isBinary });
           ws.send(JSON.stringify(fullMessage), { binary: isBinary });
-          console.log(`Message from ${from} to ${to}: ${text}`);
-        } else {
-          console.log(`User ${to} not found or not connected.`);
         }
       }
 
       else if (type === 'sender') {
-        senderSocket = ws;
-        console.log(`Sender identified`);
+        if (from && to && from !== to && clients.has(to)) {
+          activeCalls.set(from, to);
+          console.log(`Sender ${from} calling ${to}`);
+          const receiverSocket = clients.get(to)?.socket;
+          if (receiverSocket) {
+            receiverSocket.send(JSON.stringify({ type: 'incomingCall', from }), { binary: isBinary });
+          }
+        } else {
+          console.log(`Invalid sender or receiver.`);
+        }
       }
-      else if (type === 'receiver') {
-        receiverSocket = ws;
-        console.log(`Receiver identified`);
+
+      else if (type === 'receiver' && from && activeCalls.has(to) && activeCalls.get(to) === from) {
+        const senderSocket = clients.get(to)?.socket;
+        if (senderSocket) {
+          senderSocket.send(JSON.stringify({ type: 'callAccepted', from }), { binary: isBinary });
+        }
       }
+
       else if (type === 'createOffer') {
-        if (ws !== senderSocket) return;
-        console.log("Sending offer");
-        receiverSocket?.send(JSON.stringify({ type: 'createOffer', sdp }));
+        if (activeCalls.has(from) && activeCalls.get(from) === to) {
+          const receiverSocket = clients.get(to)?.socket;
+          if (receiverSocket) {
+            receiverSocket.send(JSON.stringify({ type: 'createOffer', sdp }), { binary: isBinary });
+          }
+        }
       }
+
       else if (type === 'createAnswer') {
-        if (ws !== receiverSocket) return;
-        console.log("Sending answer");
-        senderSocket?.send(JSON.stringify({ type: 'createAnswer', sdp }));
+        if (activeCalls.has(to) && activeCalls.get(to) === from) {
+          const senderSocket = clients.get(to)?.socket;
+          if (senderSocket) {
+            senderSocket.send(JSON.stringify({ type: 'createAnswer', sdp }), { binary: isBinary });
+          }
+        }
       }
 
       else if (type === 'iceCandidate') {
-        console.log("Sending ICE candidate");
-        if (ws === senderSocket) {
-          receiverSocket?.send(JSON.stringify({ type: 'iceCandidate', candidate }));
-        } else if (ws === receiverSocket) {
-          senderSocket?.send(JSON.stringify({ type: 'iceCandidate', candidate }));
+        if (activeCalls.has(from) && activeCalls.get(from) === to) {
+          const receiverSocket = clients.get(to)?.socket;
+          if (receiverSocket) {
+            receiverSocket.send(JSON.stringify({ type: 'iceCandidate', candidate }), { binary: isBinary });
+          }
+        } else if (activeCalls.has(to) && activeCalls.get(to) === from) {
+          const senderSocket = clients.get(to)?.socket;
+          if (senderSocket) {
+            senderSocket.send(JSON.stringify({ type: 'iceCandidate', candidate }), { binary: isBinary });
+          }
         }
       }
 

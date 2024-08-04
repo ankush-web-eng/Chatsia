@@ -1,17 +1,21 @@
 'use client'
 import { useEffect, useRef, useState } from "react"
+import { useSession } from "next-auth/react";
+import { User as UserModel } from "@prisma/client";
 
 import {
     Dialog,
     DialogContent,
 } from "@/components/ui/dialog"
 
-export default function Receiver({ username }: { username: string }) {
+
+export default function Receiver({ user }: { user: UserModel }) {
 
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const socketRef = useRef<WebSocket | null>(null);
+    const { data: session } = useSession();
 
     useEffect(() => {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
@@ -21,22 +25,22 @@ export default function Receiver({ username }: { username: string }) {
                 type: 'receiver'
             }));
         }
-        socket.onmessage = (event) => {
+        socket.onmessage = async(event) => {
             const message = JSON.parse(event.data);
-            if (message.type === 'createOffer') {
+            if (message.type === 'createOffer' && message.to === session?.user?.email) {
                 setIsOpen(true);
-                pcRef.current?.setRemoteDescription(message.sdp).then(() => {
-                    pcRef.current?.createAnswer().then((answer) => {
-                        pcRef.current?.setLocalDescription(answer);
-                        socket.send(JSON.stringify({
-                            type: 'createAnswer',
-                            sdp: answer
-                        }));
-                    });
-                });
-            } else if (message.type === 'iceCandidate') {
-                pcRef.current?.addIceCandidate(message.candidate);
-            }
+                await pcRef.current?.setRemoteDescription(new RTCSessionDescription(message.sdp));
+                const answer = await pcRef.current?.createAnswer();
+                await pcRef.current?.setLocalDescription(answer);
+                socket.send(JSON.stringify({
+                    type: 'createAnswer',
+                    from: session?.user?.email,
+                    to: message.from,
+                    sdp: answer
+                }));
+            } else if (message.type === 'iceCandidate' && message.to === session?.user?.email) {
+                await pcRef.current?.addIceCandidate(new RTCIceCandidate(message.candidate));
+            }   
         }
 
         return () => {
@@ -46,7 +50,9 @@ export default function Receiver({ username }: { username: string }) {
 
     useEffect(() => {
         if (isOpen && !pcRef.current) {
-            const pc = new RTCPeerConnection();
+            const pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
             pcRef.current = pc;
 
             pc.ontrack = (event) => {

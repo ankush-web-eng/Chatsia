@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import React, { useState, useEffect, KeyboardEvent } from 'react';
+import dynamic from 'next/dynamic';
 
 import { User as UserModel } from '@prisma/client';
 import { Messages as Texts } from '@prisma/client';
@@ -9,8 +10,8 @@ import { Messages as Texts } from '@prisma/client';
 import { Response } from '@/types/ResponseType';
 import { DataProps } from '@/types/SendingDataType';
 import { useToast } from '@/components/ui/use-toast';
-import ChatHeader from '@/components/includes/ChatHeader';
-import Receiver from '@/components/includes/ReceiveCall';
+const ChatHeader = dynamic(() => import('@/components/includes/ChatHeader'));
+const Receiver = dynamic(() => import('@/components/includes/ReceiveCall'));
 
 import { IoIosSend } from 'react-icons/io';
 
@@ -133,7 +134,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
     return (
         <div className="flex flex-col max-h-screen w-full">
             <ChatHeader user={user} receiverStatus={receiverStatus} />
-            <Receiver username={user.name} />
+            <Receiver user={user} />
             <div className="flex-grow overflow-y-auto p-4 space-y-2">
                 {dbMessages.length > 0 && dbMessages.map((data: Texts, index: React.Key) => (
                     <div

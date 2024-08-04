@@ -1,26 +1,25 @@
 import { useEffect, useRef, useState } from "react";
-import { FaVideo } from "react-icons/fa";
-import { useToast } from "@/components/ui/use-toast";
-import {
-    Dialog,
-    DialogContent,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+import { useSession } from "next-auth/react";
+import { User as UserModel } from "@prisma/client";
 
-export const VideoCallSender = () => {
+import { useToast } from "@/components/ui/use-toast";
+import { FaVideo } from "react-icons/fa";
+
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+
+export const VideoCallSender = ({ receiverStatus, user } : {receiverStatus : string, user : UserModel}) => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const { toast } = useToast();
     const pcRef = useRef<RTCPeerConnection | null>(null);
+    const {data:session} = useSession();
 
     useEffect(() => {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
         setSocket(socket);
         socket.onopen = () => {
-            socket.send(JSON.stringify({
-                type: 'sender'
-            }));
+            socket.send(JSON.stringify({ type: 'sender' }));
         };
 
         return () => {
@@ -40,6 +39,16 @@ export const VideoCallSender = () => {
     }, [isOpen]);
 
     const initiateConn = async () => {
+        if (receiverStatus === 'offline') {
+            toast({
+                title: 'User Offline',
+                description: `${user.name} is offline`,
+                variant: 'destructive',
+                duration: 3000
+            });
+            return;
+        }
+
         if (!socket) {
             toast({
                 title: 'Error',
@@ -59,6 +68,8 @@ export const VideoCallSender = () => {
             if (event.candidate) {
                 socket.send(JSON.stringify({
                     type: 'iceCandidate',
+                    from: session?.user?.email,
+                    to: user.email,
                     candidate: event.candidate
                 }));
             }
@@ -70,6 +81,8 @@ export const VideoCallSender = () => {
                 await pc.setLocalDescription(offer);
                 socket.send(JSON.stringify({
                     type: 'createOffer',
+                    from: session?.user?.email,
+                    to: user.email,
                     sdp: pc.localDescription
                 }));
             } catch (error) {
@@ -122,7 +135,9 @@ export const VideoCallSender = () => {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <button onClick={initiateConn}><FaVideo className="text-[#36dada] text-xl" /></button>
+                <button onClick={initiateConn}>
+                    <FaVideo className="text-[#36dada] text-xl" />
+                </button>
             </DialogTrigger>
             <DialogContent className="max-w-[90vw] w-full sm:max-w-[600px]">
                 <div className="w-full aspect-video bg-black">
