@@ -35,38 +35,38 @@ export default function UsersColumn({ selectedUser }: { selectedUser?: string })
     }, [])
 
     return (
-        <div className="flex flex-col justify-between w-full md:w-[30%] md:min-w-[300px] border-r max-h-screen border-gray bg-white no-scrollbar">
-            <div className="flex flex-col">
-                <div className="p-4 space-y-2 flex flex-col justify-center">
-                    <input
-                        type="text"
-                        placeholder="Search or start new chat"
-                        className="w-full p-2 border rounded-lg text-white"
-                        onClick={() => {
-                            toast({
-                                title: "Search is disabled",
-                                description: "Search functionality is disabled for now",
-                            });
-                        }}
-                    />
-                </div>
-                <div className="overflow-y-auto flex-grow no-scrollbar">
-                    {users
-                        .filter((user: UserModel) => user.email !== session?.user?.email)
-                        .map((user: UserModel, index: React.Key) => (
-                            <UserCard key={index} user={user} selectedUser={selectedUser} />
-                        ))}
-                </div>
+        <div className="flex flex-col w-full md:w-[30%] md:min-w-[300px] border-r h-screen border-gray bg-white">
+            <div className="p-4 space-y-2">
+                <input
+                    type="text"
+                    placeholder="Search or start new chat"
+                    className="w-full p-2 border rounded-lg text-white"
+                    onClick={() => {
+                        toast({
+                            title: "Search is disabled",
+                            description: "Search functionality is disabled for now",
+                        });
+                    }}
+                />
             </div>
-            <Button className="w-fit mb-3 ml-3" onClick={() => {
-                signOut().then(() => {
-                    toast({
-                        title: "Logged Out",
-                        description: "You have been logged out",
-                    });
-                    router.replace('/signin')
-                })
-            }}>Logout</Button>
+            <div className="flex-grow overflow-y-auto">
+                {users
+                    .filter((user: UserModel) => user.email !== session?.user?.email)
+                    .map((user: UserModel, index: React.Key) => (
+                        <UserCard key={index} user={user} selectedUser={selectedUser} />
+                    ))}
+            </div>
+            <div className="p-3">
+                <Button className="w-full" onClick={() => {
+                    signOut().then(() => {
+                        toast({
+                            title: "Logged Out",
+                            description: "You have been logged out",
+                        });
+                        router.replace('/signin')
+                    })
+                }}>Logout</Button>
+            </div>
         </div>
     )
 }

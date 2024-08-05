@@ -4,7 +4,7 @@ import Link from "next/link"
 
 export default function UserCard({ user, selectedUser }: { user: UserModel, selectedUser?: string }) {
     return (
-        <Link href={`/chats/${user.email}`} className="py-3 px-4 flex justify-start items-center space-x-4 border-b border-gray-200 last:border-b-0">
+        <Link href={`/chats/${encodeURIComponent(user.email)}`} className="py-3 px-4 flex justify-start items-center space-x-4 border-b border-gray-200 last:border-b-0">
             <div style={selectedUser === user.email ? {backgroundColor : "gray"} : {}} className="w-12 h-12 relative overflow-hidden rounded-full border-2 border-black">
                 <Image 
                     src={user.image} 

@@ -1,9 +1,9 @@
 'use client'
 import { Skeleton } from "@/components/ui/skeleton"
 
-export default function HomePageSkeleton() {
+export default function UserPageSkeleton() {
     return (
-        <div className="flex w-screen h-screen">
+        <div className="flex h-screen">
             <div className="w-64 flex flex-col p-4 border-r">
                 <Skeleton className="h-10 w-full mb-4" />
                 <div className="space-y-2">
@@ -15,10 +15,6 @@ export default function HomePageSkeleton() {
                     ))}
                 </div>
                 <Skeleton className="h-10 w-full mt-auto" />
-            </div>
-            <div className="flex-1 flex flex-col justify-center items-center max-md:hidden">
-                <Skeleton className="h-16 w-16 rounded-full mb-4" />
-                <Skeleton className="h-8 w-48" />
             </div>
         </div>
     );

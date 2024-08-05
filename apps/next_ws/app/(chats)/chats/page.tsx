@@ -1,7 +1,10 @@
-import dynamic from "next/dynamic";
-const EmptyChatCard = dynamic(() => import("@/components/Cards/EmptyChatCard"), { ssr: false });
-const UsersColumn = dynamic(() => import("@/components/UsersColumn"), {ssr: false});
 import { Metadata } from "next";
+import dynamic from "next/dynamic";
+
+import UserPageSkeleton from "@/components/skeleton/UserColumnSkeleton";
+import EmptyChatCardSkeleton from "@/components/skeleton/EmptyChatCard";
+const UsersColumn = dynamic(() => import("@/components/UsersColumn"), { ssr: false, loading: () => <UserPageSkeleton /> });
+const EmptyChatCard = dynamic(() => import("@/components/Cards/EmptyChatCard"), { ssr: false, loading: () => <EmptyChatCardSkeleton /> });
 
 export const metadata: Metadata = {
   title: "Chats",
