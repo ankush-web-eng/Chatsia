@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { User as UserModel } from "@prisma/client";
@@ -8,58 +7,42 @@ import { FaVideo } from "react-icons/fa";
 
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
-export const VideoCallSender = ({ receiverStatus, user } : {receiverStatus : string, user : UserModel}) => {
+export const VideoCallSender = ({ receiverStatus, user }: { receiverStatus: string, user: UserModel }) => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const { toast } = useToast();
     const pcRef = useRef<RTCPeerConnection | null>(null);
-    const {data:session} = useSession();
+    const { data: session } = useSession();
 
     useEffect(() => {
-        const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
+        const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL!);
         setSocket(socket);
+
         socket.onopen = () => {
-            socket.send(JSON.stringify({ type: 'sender', from: session?.user?.email, to: user.email }));
+            socket.send(JSON.stringify({ 
+                type: 'register', 
+                from: session?.user?.email 
+            }));
+        };
+
+        socket.onmessage = async (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === 'callInitiated') {
+                await setupPeerConnection();
+            } else if (message.type === 'createAnswer') {
+                await pcRef.current?.setRemoteDescription(new RTCSessionDescription(message.sdp));
+            } else if (message.type === 'iceCandidate') {
+                await pcRef.current?.addIceCandidate(new RTCIceCandidate(message.candidate));
+            }
         };
 
         return () => {
             socket.close();
         };
-    }, []);
+    }, [session?.user?.email]);
 
-    useEffect(() => {
-        if (videoRef.current) {
-            console.log("Video element is available");
-            if (videoRef.current.srcObject) {
-                console.log("Video has a source");
-            } else {
-                console.log("Video does not have a source");
-            }
-        }
-    }, [isOpen]);
-
-    const initiateConn = async () => {
-        if (receiverStatus === 'offline') {
-            toast({
-                title: 'User Offline',
-                description: `${user.name} is offline`,
-                variant: 'destructive',
-                duration: 3000
-            });
-            return;
-        }
-
-        if (!socket) {
-            toast({
-                title: 'Error',
-                description: "Connection not found",
-                variant: 'destructive',
-                duration: 3000
-            });
-            return;
-        }
-
+    const setupPeerConnection = async () => {
         const pc = new RTCPeerConnection({
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
         });
@@ -67,7 +50,7 @@ export const VideoCallSender = ({ receiverStatus, user } : {receiverStatus : str
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
-                socket.send(JSON.stringify({
+                socket?.send(JSON.stringify({
                     type: 'iceCandidate',
                     from: session?.user?.email,
                     to: user.email,
@@ -80,7 +63,7 @@ export const VideoCallSender = ({ receiverStatus, user } : {receiverStatus : str
             try {
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
-                socket.send(JSON.stringify({
+                socket?.send(JSON.stringify({
                     type: 'createOffer',
                     from: session?.user?.email,
                     to: user.email,
@@ -88,15 +71,6 @@ export const VideoCallSender = ({ receiverStatus, user } : {receiverStatus : str
                 }));
             } catch (error) {
                 console.error("Error during negotiation:", error);
-            }
-        };
-
-        socket.onmessage = async (event) => {
-            const message = JSON.parse(event.data);
-            if (message.type === 'createAnswer') {
-                await pc.setRemoteDescription(message.sdp);
-            } else if (message.type === 'iceCandidate') {
-                await pc.addIceCandidate(message.candidate);
             }
         };
 
@@ -121,6 +95,34 @@ export const VideoCallSender = ({ receiverStatus, user } : {receiverStatus : str
         }
     };
 
+    const initiateCall = () => {
+        if (receiverStatus === 'offline') {
+            toast({
+                title: 'User Offline',
+                description: `${user.name} is offline`,
+                variant: 'destructive',
+                duration: 3000
+            });
+            return;
+        }
+
+        if (!socket) {
+            toast({
+                title: 'Error',
+                description: "Connection not found",
+                variant: 'destructive',
+                duration: 3000
+            });
+            return;
+        }
+
+        socket.send(JSON.stringify({
+            type: 'initiateCall',
+            from: session?.user?.email,
+            to: user.email
+        }));
+    };
+
     useEffect(() => {
         return () => {
             if (pcRef.current) {
@@ -136,7 +138,7 @@ export const VideoCallSender = ({ receiverStatus, user } : {receiverStatus : str
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <button onClick={initiateConn}>
+                <button onClick={initiateCall}>
                     <FaVideo className="text-[#36dada] text-xl" />
                 </button>
             </DialogTrigger>

@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 export default function HomePageSkeleton() {
     return (
         <div className="flex w-screen h-screen">
-            <div className="w-64 flex flex-col p-4 border-r">
+            <div className="w-64 flex flex-col p-4 border-r max-md:w-screen">
                 <Skeleton className="h-10 w-full mb-4" />
                 <div className="space-y-2">
                     {[...Array(6)].map((_, i) => (

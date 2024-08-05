@@ -9,14 +9,10 @@ const server = http.createServer((req, res) => {
 });
 
 const wss = new WebSocketServer({ server });
-const clients = new Map<string, { socket: WebSocket, lastPing: number }>();
-const activeCalls = new Map<string, string>();
+const clients = new Map<string, { socket: WebSocket, lastPing: number, isAvailable: boolean }>();
 
 const PING_INTERVAL = 10000;
 const DISCONNECT_TIMEOUT = 30000;
-
-let senderSocket: WebSocket | null = null;
-let receiverSocket: WebSocket | null = null;
 
 wss.on('connection', (ws) => {
   ws.on('error', (error) => console.error('WebSocket error:', error));
@@ -27,7 +23,7 @@ wss.on('connection', (ws) => {
       console.log(`Received message: ${messageStr}`);
 
       const parsedMessage = JSON.parse(messageStr);
-      const { type, from, person, to, text, sdp, candidate } = parsedMessage;
+      const { type, from, to, person, text, sdp, candidate } = parsedMessage;
 
       switch (type) {
         case 'register':
@@ -36,14 +32,11 @@ wss.on('connection', (ws) => {
         case 'ping':
           handlePing(from);
           break;
+        case 'initiateCall':
+          handleCallInitiation(from, to, isBinary);
+          break;
         case 'message':
           handleMessage(ws, from, to, person, text, isBinary);
-          break;
-        case 'sender':
-          handleSender(from, to, isBinary);
-          break;
-        case 'receiver':
-          handleReceiver(from, to, isBinary);
           break;
         case 'createOffer':
         case 'createAnswer':
@@ -51,21 +44,6 @@ wss.on('connection', (ws) => {
           break;
         case 'iceCandidate':
           handleIceCandidate(from, to, candidate, isBinary);
-          break;
-        case 'videoSender':
-          handleVideoSender(ws);
-          break;
-        case 'videoReceiver':
-          handleVideoReceiver(ws);
-          break;
-        case 'videoCreateOffer':
-          handleVideoCreateOffer(ws, sdp);
-          break;
-        case 'videoCreateAnswer':
-          handleVideoCreateAnswer(ws, sdp);
-          break;
-        case 'videoIceCandidate':
-          handleVideoIceCandidate(ws, candidate);
           break;
         default:
           console.log(`Unhandled message type: ${type}`);
@@ -81,14 +59,36 @@ wss.on('connection', (ws) => {
 });
 
 function handleRegister(ws: WebSocket, from: string, isBinary: boolean) {
-  clients.set(from, { socket: ws, lastPing: Date.now() });
+  if (!clients.has(from)) {
+    clients.set(from, { socket: ws, lastPing: Date.now(), isAvailable: true });
+  } else {
+    const client = clients.get(from)!;
+    client.socket = ws;
+    client.lastPing = Date.now();
+    client.isAvailable = true;
+  }
+  console.log(`Registered ${from}`);
   broadcastStatus();
-  ws.send(JSON.stringify({ type: 'receiverStatus', status: 'online' }), { binary: isBinary });
+  ws.send(JSON.stringify({ type: 'registerConfirmation', status: 'success' }), { binary: isBinary });
 }
 
 function handlePing(from: string) {
   if (clients.has(from)) {
     clients.get(from)!.lastPing = Date.now();
+  }
+}
+
+function handleCallInitiation(from: string, to: string, isBinary: boolean) {
+  const callerClient = clients.get(from);
+  const receiverClient = clients.get(to);
+  
+  if (callerClient && receiverClient && receiverClient.isAvailable) {
+    console.log(`${from} is calling ${to}`);
+    receiverClient.socket.send(JSON.stringify({ type: 'incomingCall', from }), { binary: isBinary });
+    callerClient.socket.send(JSON.stringify({ type: 'callInitiated', to }), { binary: isBinary });
+  } else {
+    console.log(`Call initiation failed: ${to} is not available`);
+    callerClient?.socket.send(JSON.stringify({ type: 'callFailed', reason: 'Receiver not available' }), { binary: isBinary });
   }
 }
 
@@ -101,82 +101,21 @@ function handleMessage(ws: WebSocket, from: string, to: string, person: string, 
   }
 }
 
-function handleSender(from: string, to: string, isBinary: boolean) {
-  if (from && to && from !== to && clients.has(to)) {
-    activeCalls.set(from, to);
-    console.log(`Sender ${from} calling ${to}`);
-    const receiverSocket = clients.get(to)?.socket;
-    if (receiverSocket) {
-      receiverSocket.send(JSON.stringify({ type: 'incomingCall', from }), { binary: isBinary });
-    }
-  } else {
-    console.log(`Invalid sender or receiver.`);
-  }
-}
-
-function handleReceiver(from: string, to: string, isBinary: boolean) {
-  if (from && activeCalls.has(to) && activeCalls.get(to) === from) {
-    const senderSocket = clients.get(to)?.socket;
-    if (senderSocket) {
-      senderSocket.send(JSON.stringify({ type: 'callAccepted', from }), { binary: isBinary });
-    }
-  }
-}
-
 function handleSdpExchange(type: string, from: string, to: string, sdp: any, isBinary: boolean) {
-  const isValidCall = (type === 'createOffer' && activeCalls.has(from) && activeCalls.get(from) === to) ||
-                      (type === 'createAnswer' && activeCalls.has(to) && activeCalls.get(to) === from);
-
-  if (isValidCall) {
-    const targetSocket = clients.get(to)?.socket;
-    if (targetSocket) {
-      targetSocket.send(JSON.stringify({ type, sdp }), { binary: isBinary });
-    }
+  const targetClient = clients.get(to);
+  if (targetClient) {
+    console.log(`Sending ${type} from ${from} to ${to}`);
+    targetClient.socket.send(JSON.stringify({ type, from, sdp }), { binary: isBinary });
+  } else {
+    console.log(`Invalid ${type} exchange: target client not found`);
   }
 }
 
 function handleIceCandidate(from: string, to: string, candidate: any, isBinary: boolean) {
-  const isValidCall = (activeCalls.has(from) && activeCalls.get(from) === to) ||
-                      (activeCalls.has(to) && activeCalls.get(to) === from);
-
-  if (isValidCall) {
-    const targetSocket = clients.get(to)?.socket;
-    if (targetSocket) {
-      targetSocket.send(JSON.stringify({ type: 'iceCandidate', candidate }), { binary: isBinary });
-    }
-  }
-}
-
-function handleVideoSender(ws: WebSocket) {
-  console.log("sender added");
-  senderSocket = ws;
-}
-
-function handleVideoReceiver(ws: WebSocket) {
-  console.log("receiver added");
-  receiverSocket = ws;
-}
-
-function handleVideoCreateOffer(ws: WebSocket, sdp: any) {
-  if (ws !== senderSocket) return;
-  console.log("sending offer");
-  receiverSocket?.send(JSON.stringify({ type: 'videoCreateOffer', sdp: sdp }));
-}
-
-function handleVideoCreateAnswer(ws: WebSocket, sdp: any) {
-  if (ws !== receiverSocket) return;
-  console.log("sending answer");
-  senderSocket?.send(JSON.stringify({ type: 'videoCreateAnswer', sdp: sdp }));
-}
-
-function handleVideoIceCandidate(ws: WebSocket, candidate: any) {
-  console.log("sending ice candidate");
-  if (ws === senderSocket) {
-    console.log("sender ice candidate");
-    receiverSocket?.send(JSON.stringify({ type: 'videoIceCandidate', candidate: candidate }));
-  } else if (ws === receiverSocket) {
-    console.log("receiver ice candidate");
-    senderSocket?.send(JSON.stringify({ type: 'videoIceCandidate', candidate: candidate }));
+  const targetClient = clients.get(to);
+  if (targetClient) {
+    console.log(`Sending ice candidate from ${from} to ${to}`);
+    targetClient.socket.send(JSON.stringify({ type: 'iceCandidate', from, candidate }), { binary: isBinary });
   }
 }
 
@@ -192,11 +131,12 @@ function handleDisconnect(ws: WebSocket) {
 }
 
 function broadcastStatus() {
-  for (let [username, { socket }] of clients.entries()) {
+  const onlineUsers = Array.from(clients.keys());
+  for (let { socket } of clients.values()) {
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         type: 'updateStatus',
-        users: Array.from(clients.keys())
+        users: onlineUsers
       }));
     }
   }
