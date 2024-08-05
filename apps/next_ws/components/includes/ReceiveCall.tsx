@@ -15,7 +15,7 @@ export default function Receiver({ user }: { user: UserModel }) {
     const { data: session } = useSession();
 
     useEffect(() => {
-        const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL!);
+        const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
         socketRef.current = socket;
 
         socket.onopen = () => {

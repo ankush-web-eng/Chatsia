@@ -16,7 +16,7 @@ export const VideoCallSender = ({ receiverStatus, user }: { receiverStatus: stri
     const { data: session } = useSession();
 
     useEffect(() => {
-        const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL!);
+        const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
         setSocket(socket);
 
         socket.onopen = () => {
