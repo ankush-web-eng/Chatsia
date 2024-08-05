@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { User } from '@prisma/client';
-import { VideoCallSender } from '@/components/includes/VideoCallSender';
+import VideoCallSender from '@/components/includes/VideoCallSender';
 import { useToast } from '@/components/ui/use-toast';
 
 interface Props {
@@ -39,7 +39,7 @@ const ChatHeader: React.FC<Props> = ({ user, receiverStatus }) => {
                 <span className="font-semibold">{user.name}</span>
             </div>
             <div className="flex space-x-4">
-                <VideoCallSender user={user} receiverStatus={receiverStatus} />
+                <VideoCallSender user={user}  />
             </div>
         </div>
     );
