@@ -35,7 +35,7 @@ export default function UsersColumn({ selectedUser }: { selectedUser?: string })
     }, [])
 
     return (
-        <div className="flex flex-col justify-between w-full md:w-[30%] md:min-w-[300px] border-r min-h-screen border-gray bg-white no-scrollbar">
+        <div className="flex flex-col justify-between w-full md:w-[30%] md:min-w-[300px] border-r max-h-screen border-gray bg-white no-scrollbar">
             <div className="flex flex-col">
                 <div className="p-4 space-y-2 flex flex-col justify-center">
                     <input

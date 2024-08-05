@@ -22,7 +22,9 @@ export default function Receiver({ user }: { user: UserModel }) {
         socketRef.current = socket;
         socket.onopen = () => {
             socket.send(JSON.stringify({
-                type: 'receiver'
+                type: 'receiver',
+                from: session?.user?.email,
+                to: user.email
             }));
         }
         socket.onmessage = async(event) => {

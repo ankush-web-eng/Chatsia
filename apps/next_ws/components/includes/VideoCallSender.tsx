@@ -19,7 +19,7 @@ export const VideoCallSender = ({ receiverStatus, user } : {receiverStatus : str
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
         setSocket(socket);
         socket.onopen = () => {
-            socket.send(JSON.stringify({ type: 'sender' }));
+            socket.send(JSON.stringify({ type: 'sender', from: session?.user?.email, to: user.email }));
         };
 
         return () => {
