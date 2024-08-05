@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { User } from '@prisma/client';
-import VideoCallSender from '@/components/includes/VideoCallSender';
+import {VideoCallSender} from '@/components/includes/VideoCallSender';
 import { useToast } from '@/components/ui/use-toast';
 
 interface Props {
@@ -11,15 +11,6 @@ interface Props {
 
 const ChatHeader: React.FC<Props> = ({ user, receiverStatus }) => {
     const { toast } = useToast();
-
-    const handleVideoCallClick = () => {
-        if (receiverStatus === 'offline') {
-            toast({
-                title: `${user.name} is offline`,
-                duration: 3000,
-            });
-        }
-    };
 
     return (
         <div className="flex items-center rounded-xl justify-between p-3 border">
@@ -39,7 +30,7 @@ const ChatHeader: React.FC<Props> = ({ user, receiverStatus }) => {
                 <span className="font-semibold">{user.name}</span>
             </div>
             <div className="flex space-x-4">
-                <VideoCallSender user={user}  />
+                <VideoCallSender user={user} receiverStatus={receiverStatus}  />
             </div>
         </div>
     );
