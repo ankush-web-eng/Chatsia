@@ -8,47 +8,61 @@ import {
     DialogContent,
 } from "@/components/ui/dialog"
 
-
 export default function Receiver({ user }: { user: UserModel }) {
-
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const socketRef = useRef<WebSocket | null>(null);
     const { data: session } = useSession();
 
+    const handleWebSocketMessage = async (event: MessageEvent) => {
+        const message = JSON.parse(event.data);
+
+        if (message.to !== session?.user?.email) return;
+
+        switch (message.type) {
+            case 'createOffer':
+                setIsOpen(true);
+                await pcRef.current?.setRemoteDescription(new RTCSessionDescription(message.sdp));
+                const answer = await pcRef.current?.createAnswer();
+                await pcRef.current?.setLocalDescription(answer);
+                socketRef.current?.send(JSON.stringify({
+                    type: 'createAnswer',
+                    from: session?.user?.email,
+                    to: message.from,
+                    sdp: answer
+                }));
+                break;
+            case 'iceCandidate':
+                await pcRef.current?.addIceCandidate(new RTCIceCandidate(message.candidate));
+                break;
+            default:
+                console.warn('Unknown message type:', message.type);
+        }
+    };
+
     useEffect(() => {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
         socketRef.current = socket;
+
         socket.onopen = () => {
             socket.send(JSON.stringify({
                 type: 'receiver',
                 from: session?.user?.email,
                 to: user.email
             }));
-        }
-        socket.onmessage = async(event) => {
-            const message = JSON.parse(event.data);
-            if (message.type === 'createOffer' && message.to === session?.user?.email) {
-                setIsOpen(true);
-                await pcRef.current?.setRemoteDescription(new RTCSessionDescription(message.sdp));
-                const answer = await pcRef.current?.createAnswer();
-                await pcRef.current?.setLocalDescription(answer);
-                socket.send(JSON.stringify({
-                    type: 'createAnswer',
-                    from: session?.user?.email,
-                    to: message.from,
-                    sdp: answer
-                }));
-            } else if (message.type === 'iceCandidate' && message.to === session?.user?.email) {
-                await pcRef.current?.addIceCandidate(new RTCIceCandidate(message.candidate));
-            }   
-        }
+        };
+
+        socket.onmessage = handleWebSocketMessage;
+
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
 
         return () => {
             socket.close();
         };
-    }, []);
+    }, [session?.user?.email, user.email]);
 
     useEffect(() => {
         if (isOpen && !pcRef.current) {
@@ -58,9 +72,8 @@ export default function Receiver({ user }: { user: UserModel }) {
             pcRef.current = pc;
 
             pc.ontrack = (event) => {
-                if (!videoRef.current) {
-                    return;
-                }
+                if (!videoRef.current) return;
+
                 const video = videoRef.current;
                 video.autoplay = true;
                 video.muted = true;
@@ -86,16 +99,31 @@ export default function Receiver({ user }: { user: UserModel }) {
                 video.onerror = (e) => {
                     console.error("Video error:", e);
                 };
-            }
+            };
+
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socketRef.current?.send(JSON.stringify({
+                        type: 'iceCandidate',
+                        from: session?.user?.email,
+                        to: user.email,
+                        candidate: event.candidate
+                    }));
+                }
+            };
+
+            pc.oniceconnectionstatechange = () => {
+                if (pc.iceConnectionState === 'disconnected') {
+                    setIsOpen(false);
+                }
+            };
         }
-    }, [isOpen]);
+    }, [isOpen, session?.user?.email, user.email]);
 
     useEffect(() => {
         return () => {
-            if (pcRef.current) {
-                pcRef.current.close();
-            }
-            if (videoRef.current && videoRef.current.srcObject) {
+            pcRef.current?.close();
+            if (videoRef.current?.srcObject) {
                 const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
                 tracks.forEach((track) => track.stop());
             }
@@ -118,5 +146,5 @@ export default function Receiver({ user }: { user: UserModel }) {
                 </DialogContent>
             </Dialog>
         </div>
-    )
+    );
 }
