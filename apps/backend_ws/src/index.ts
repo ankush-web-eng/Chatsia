@@ -11,6 +11,9 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server });
 const clients = new Map<string, { socket: WebSocket, lastPing: number, isAvailable: boolean }>();
 
+let senderSocket: WebSocket | null = null;
+let receiverSocket: WebSocket | null = null;
+
 const PING_INTERVAL = 10000;
 const DISCONNECT_TIMEOUT = 30000;
 
@@ -44,6 +47,21 @@ wss.on('connection', (ws) => {
           break;
         case 'iceCandidate':
           handleIceCandidate(from, to, candidate, isBinary);
+          break;
+        case 'videoSender':
+          handleVideoSender(ws);
+          break;
+        case 'videoReceiver':
+          handleVideoReceiver(ws);
+          break;
+        case 'videoCreateOffer':
+          handleVideoCreateOffer(ws, sdp);
+          break;
+        case 'videoCreateAnswer':
+          handleVideoCreateAnswer(ws, sdp);
+          break;
+        case 'videoIceCandidate':
+          handleVideoIceCandidate(ws, candidate);
           break;
         default:
           console.log(`Unhandled message type: ${type}`);
@@ -81,7 +99,7 @@ function handlePing(from: string) {
 function handleCallInitiation(from: string, to: string, isBinary: boolean) {
   const callerClient = clients.get(from);
   const receiverClient = clients.get(to);
-  
+
   if (callerClient && receiverClient && receiverClient.isAvailable) {
     console.log(`${from} is calling ${to}`);
     receiverClient.socket.send(JSON.stringify({ type: 'incomingCall', from }), { binary: isBinary });
@@ -119,6 +137,28 @@ function handleIceCandidate(from: string, to: string, candidate: any, isBinary: 
   }
 }
 
+function handleVideoSender(ws: WebSocket) {
+  console.log("sender added");
+  senderSocket = ws;
+}
+
+function handleVideoReceiver(ws: WebSocket) {
+  console.log("receiver added");
+  receiverSocket = ws;
+}
+
+function handleVideoCreateOffer(ws: WebSocket, sdp: any) {
+  if (ws !== senderSocket) return;
+  console.log("sending offer");
+  receiverSocket?.send(JSON.stringify({ type: 'videoCreateOffer', sdp: sdp }));
+}
+
+function handleVideoCreateAnswer(ws: WebSocket, sdp: any) {
+  if (ws !== receiverSocket) return;
+  console.log("sending answer");
+  senderSocket?.send(JSON.stringify({ type: 'videoCreateAnswer', sdp: sdp }));
+}
+
 function handleDisconnect(ws: WebSocket) {
   for (let [username, client] of clients.entries()) {
     if (client.socket === ws) {
@@ -127,6 +167,17 @@ function handleDisconnect(ws: WebSocket) {
       broadcastStatus();
       break;
     }
+  }
+}
+
+function handleVideoIceCandidate(ws: WebSocket, candidate: any) {
+  console.log("sending ice candidate");
+  if (ws === senderSocket) {
+    console.log("sender ice candidate");
+    receiverSocket?.send(JSON.stringify({ type: 'videoIceCandidate', candidate: candidate }));
+  } else if (ws === receiverSocket) {
+    console.log("receiver ice candidate");
+    senderSocket?.send(JSON.stringify({ type: 'videoIceCandidate', candidate: candidate }));
   }
 }
 
