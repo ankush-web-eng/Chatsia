@@ -7,7 +7,7 @@ export default function UserPageSkeleton() {
             <div className="w-64 flex flex-col p-4 border-r">
                 <Skeleton className="h-10 w-full mb-4" />
                 <div className="space-y-2">
-                    {[...Array(6)].map((_, i) => (
+                    {[...Array(10)].map((_, i) => (
                         <div key={i} className="flex items-center space-x-2">
                             <Skeleton className="h-10 w-10 rounded-full" />
                             <Skeleton className="h-6 w-32" />
