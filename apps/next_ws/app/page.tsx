@@ -6,6 +6,7 @@ import { signOut, useSession } from "next-auth/react";
 
 import { useToast } from "@/components/ui/use-toast";
 import { useEffect, useState } from "react";
+import Spinner from "@/components/Spinner";
 
 const HomePageSkeleton = dynamic(() => import("@/components/skeleton/HomePageSkeleton"));
 
@@ -54,5 +55,5 @@ export default function Page() {
         createUser()
     }, [])
 
-    return <HomePageSkeleton />
+    return <Spinner />
 }
