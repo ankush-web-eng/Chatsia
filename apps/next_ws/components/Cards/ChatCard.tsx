@@ -135,7 +135,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
         <div className="flex flex-col max-h-screen w-full">
             <ChatHeader user={user} receiverStatus={receiverStatus} />
             <Receiver user={user} />
-            <div className="flex-grow overflow-y-auto p-4 space-y-2">
+            <div className="flex-grow overflow-y-auto p-4 space-y-2 custom-scrollbar">
                 {dbMessages.length > 0 && dbMessages.map((data: Texts, index: React.Key) => (
                     <div
                         key={index}

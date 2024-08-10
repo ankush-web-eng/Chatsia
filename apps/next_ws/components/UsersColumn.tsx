@@ -49,7 +49,7 @@ export default function UsersColumn({ selectedUser }: { selectedUser?: string })
                     }}
                 />
             </div>
-            <div className="flex-grow overflow-y-auto">
+            <div className="flex-grow overflow-y-auto custom-scrollbar">
                 {users
                     .filter((user: UserModel) => user.email !== session?.user?.email)
                     .map((user: UserModel, index: React.Key) => (
