@@ -16,16 +16,32 @@ const Receiver = dynamic(() => import('@/components/includes/ReceiveCall'));
 import { IoIosSend } from 'react-icons/io';
 import ChatInterfaceSkeleton from '../skeleton/ChatInterfaceSkeleton';
 
+import { useQuery } from '@tanstack/react-query';
+
+const fetchMessages = async (sender: string, receiver: string) => {
+    const response = await axios.post('/api/text/get', {
+        sender,
+        receiver
+    });
+    return response.data.messages;
+};
+
 const ChatInterface = ({ user }: { user: UserModel }) => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
     const [text, setText] = useState<string>("");
     const [isTyped, setIsTyped] = useState<boolean>(false);
-    const [dbMessages, setDbMessages] = useState<Texts[]>([]);
+    // const [dbMessages, setDbMessages] = useState<Texts[]>([]);
     const [socketMessages, setSocketMessages] = useState<Response[]>([]);
     const [receiverStatus, setReceiverStatus] = useState<string>("offline");
     const { data: session } = useSession();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
+
+    const { data: dbMessages = [], isLoading } = useQuery({
+        queryKey: ['messages', session?.user?.email, user.email],
+        queryFn: () => fetchMessages(session?.user?.email!, user.email),
+        staleTime: 1000 * 60 * 5,
+    });
 
     useEffect(() => {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
@@ -110,30 +126,30 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
         }
     }
 
-    const getMessages = async () => {
-        try {
-            const response = await axios.post('/api/text/get', {
-                sender: session?.user?.email,
-                receiver: user.email
-            });
-            setDbMessages(response.data.messages);
-            setLoading(false);
-        } catch (error) {
-            console.error(error)
-            toast({
-                title: "Error",
-                description: "Failed to get messages",
-                variant: "destructive",
-                duration: 2500,
-            })
-        }
-    }
+    // const getMessages = async () => {
+    //     try {
+    //         const response = await axios.post('/api/text/get', {
+    //             sender: session?.user?.email,
+    //             receiver: user.email
+    //         });
+    //         setDbMessages(response.data.messages);
+    //         setLoading(false);
+    //     } catch (error) {
+    //         console.error(error)
+    //         toast({
+    //             title: "Error",
+    //             description: "Failed to get messages",
+    //             variant: "destructive",
+    //             duration: 2500,
+    //         })
+    //     }
+    // }
 
-    useEffect(() => {
-        getMessages();
-    }, []);
+    // useEffect(() => {
+    //     getMessages();
+    // }, []);
 
-    if (loading) {
+    if (isLoading) {
         return <ChatInterfaceSkeleton />;
     }
 
