@@ -2,37 +2,35 @@
 
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { signOut, useSession } from "next-auth/react";
 
 import { User as UserModel } from "@prisma/client";
 import { useToast } from "@/components/ui/use-toast";
 import UserCard from "@/components/Cards/UserCard";
 import { Button } from "@/components/ui/button";
+import UserPageSkeleton from "./skeleton/UserColumnSkeleton";
+import { useQuery } from "@tanstack/react-query";
 
 export default function UsersColumn({ selectedUser }: { selectedUser?: string }) {
-    const [users, setUsers] = useState([]);
     const { toast } = useToast();
-    const { data: session } = useSession()
-    const router = useRouter()
+    const { data: session } = useSession();
+    const router = useRouter();
 
     const getUsers = async () => {
-        try {
-            const res = await axios.get('/api/user/get');
-            setUsers(res.data.users);
-        } catch (error) {
-            console.error(error);
-            toast({
-                title: "Error",
-                description: "An error occurred while fetching users",
-                variant: "destructive"
-            });
-        }
-    }
+        const res = await axios.get('/api/user/get');
+        return res.data.users;
+    };
 
-    useEffect(() => {
-        getUsers();
-    }, [])
+    const { data: users = [], isLoading } = useQuery({
+        queryKey: ['users'],
+        queryFn: getUsers,
+        staleTime: 1000 * 60 * 5,
+    });
+
+    if (isLoading) {
+        return <UserPageSkeleton />;
+    }
 
     return (
         <div className="flex flex-col w-full md:w-[30%] md:min-w-[300px] border-r h-screen border-gray bg-white">
@@ -52,8 +50,8 @@ export default function UsersColumn({ selectedUser }: { selectedUser?: string })
             <div className="flex-grow overflow-y-auto custom-scrollbar">
                 {users
                     .filter((user: UserModel) => user.email !== session?.user?.email)
-                    .map((user: UserModel, index: React.Key) => (
-                        <UserCard key={index} user={user} selectedUser={selectedUser} />
+                    .map((user: UserModel) => (
+                        <UserCard key={user.id} user={user} selectedUser={selectedUser} />
                     ))}
             </div>
             <div className="p-3">
@@ -68,5 +66,5 @@ export default function UsersColumn({ selectedUser }: { selectedUser?: string })
                 }}>Logout</Button>
             </div>
         </div>
-    )
+    );
 }

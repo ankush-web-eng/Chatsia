@@ -6,7 +6,6 @@ import { signOut, useSession } from "next-auth/react";
 
 import { useToast } from "@/components/ui/use-toast";
 import { useEffect, useState } from "react";
-import Spinner from "@/components/Spinner";
 
 const HomePageSkeleton = dynamic(() => import("@/components/skeleton/HomePageSkeleton"));
 
@@ -41,7 +40,6 @@ export default function Page() {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
 
         socket.onopen = () => {
-            console.log("Connected to the server");
             socket.send(JSON.stringify({ type: "register", from: session?.user?.email }));
             setSocket(socket);
         }
@@ -55,5 +53,5 @@ export default function Page() {
         createUser()
     }, [])
 
-    return <Spinner />
+    return <HomePageSkeleton />
 }

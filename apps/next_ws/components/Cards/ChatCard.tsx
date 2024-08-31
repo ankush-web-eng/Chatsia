@@ -14,6 +14,7 @@ const ChatHeader = dynamic(() => import('@/components/includes/ChatHeader'));
 const Receiver = dynamic(() => import('@/components/includes/ReceiveCall'));
 
 import { IoIosSend } from 'react-icons/io';
+import ChatInterfaceSkeleton from '../skeleton/ChatInterfaceSkeleton';
 
 const ChatInterface = ({ user }: { user: UserModel }) => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -24,6 +25,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
     const [receiverStatus, setReceiverStatus] = useState<string>("offline");
     const { data: session } = useSession();
     const { toast } = useToast();
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const socket = new WebSocket(process.env.NEXT_PUBLIC_WSS_URL!);
@@ -115,7 +117,7 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
                 receiver: user.email
             });
             setDbMessages(response.data.messages);
-            console.log(dbMessages)
+            setLoading(false);
         } catch (error) {
             console.error(error)
             toast({
@@ -130,6 +132,10 @@ const ChatInterface = ({ user }: { user: UserModel }) => {
     useEffect(() => {
         getMessages();
     }, []);
+
+    if (loading) {
+        return <ChatInterfaceSkeleton />;
+    }
 
     return (
         <div className="flex flex-col max-h-screen w-full">
