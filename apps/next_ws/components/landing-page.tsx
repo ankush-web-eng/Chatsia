@@ -19,10 +19,12 @@ export default function LandingPage() {
                 <p className="mx-auto max-w-[700px] text-lg text-blue-700 mt-4 mb-8">
                     Experience seamless communication with ChatSip - your all-in-one platform for messaging and video calls.
                 </p>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
-                    <LogIn className="mr-2 h-5 w-5" />
-                    Sign in with Google <Auth />
-                </Button>
+                <Auth >
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                        <LogIn className="mr-2 h-5 w-5" />
+                        Sign in with Google
+                    </Button>
+                </Auth>
                 <div className="flex items-center justify-center space-x-4 mt-8">
                     <div className="flex items-center">
                         <MessageCircle className="h-5 w-5 text-blue-600 mr-2" />

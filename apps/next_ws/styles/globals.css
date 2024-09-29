@@ -118,7 +118,7 @@
 @layer utilities {
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #0481bb #e0f2fe;
+    scrollbar-color: #2286b4 #e0f2fe;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -127,15 +127,15 @@
 
   .custom-scrollbar::-webkit-scrollbar-track {
     background: #e0f2fe;
-    border-right: 2px solid #0481bb;
+    border-right: 2px solid #2286b4;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #0481bb;
-    border-right: 2px solid #0481bb;
+    border-right: 2px solid #2286b4;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #036592;
+    background: #2286b4;
   }
 }

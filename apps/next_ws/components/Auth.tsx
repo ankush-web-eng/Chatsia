@@ -3,7 +3,7 @@
 import { signIn, useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation";
 
-export default function Auth() {
+export default function Auth({ children }: { children: React.ReactNode }) {
 
   const router = useRouter()
   const { data: session } = useSession()
@@ -18,9 +18,9 @@ export default function Auth() {
   }
 
   return (
-    <div className="h-fit w-fit">
-      <button className="" onClick={handleSesison}>
-        {/* <svg
+    <div onClick={handleSesison} className="h-fit w-fit">
+      {/* <button className="" > */}
+      {/* <svg
           xmlns="http://www.w3.org/2000/svg"
           height="24"
           viewBox="0 0 24 24"
@@ -45,7 +45,8 @@ export default function Auth() {
           <path d="M1 1h22v22H1z" fill="none" />
         </svg>
         <span>{email ? "Logout" : "Login with Google"}</span> */}
-      </button>
+      {children}
+      {/* </button> */}
     </div>
   )
 }
