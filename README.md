@@ -7,7 +7,7 @@
 
 ## Connect, Chat, and Call with Ease
 
-### Experience seamless communication with ChatSip - your all-in-one platform for messaging and video calls.
+### Experience seamless communication with ChatSia - your all-in-one platform for messaging and video calls.
 
 Try out chatting and video calling your friends at [ChatSia](https://chat.ankushsingh.tech)
 
