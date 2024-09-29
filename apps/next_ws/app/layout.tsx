@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "Chatsip",
-    template: "%s | Chatsip"
+    default: "Chatsia",
+    template: "%s | Chatsia"
   },
   description: "Connect woth your friends and family",
 };

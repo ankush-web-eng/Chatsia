@@ -18,9 +18,9 @@ export default function Auth() {
   }
 
   return (
-    <div className="h-screen flex justify-center items-center">
-      <button className="flex space-x-2 bg-sky-100 border rounded-lg px-6 py-3" onClick={handleSesison}>
-        <svg
+    <div className="h-fit w-fit">
+      <button className="" onClick={handleSesison}>
+        {/* <svg
           xmlns="http://www.w3.org/2000/svg"
           height="24"
           viewBox="0 0 24 24"
@@ -44,7 +44,7 @@ export default function Auth() {
           />
           <path d="M1 1h22v22H1z" fill="none" />
         </svg>
-        <span>{email ? "Logout" : "Login with Google"}</span>
+        <span>{email ? "Logout" : "Login with Google"}</span> */}
       </button>
     </div>
   )

@@ -13,9 +13,9 @@ export default function Page() {
 
     const [socket, setSocket] = useState<WebSocket | null>(null);
 
-    const { data: session } = useSession()
-    const router = useRouter()
-    const { toast } = useToast()
+    const { data: session } = useSession();
+    const router = useRouter();
+    const { toast } = useToast();
 
     const createUser = async () => {
         const response = await axios.post('/api/user/create', {
@@ -29,10 +29,10 @@ export default function Page() {
                 description: response.data.error,
                 variant: 'destructive'
             })
-            signOut()
-            router.replace('/signin')
+            signOut();
+            router.replace('/signin');
         } else {
-            router.replace('/chats')
+            router.replace('/chats');
         }
     }
 
